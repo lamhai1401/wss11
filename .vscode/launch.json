@@ -7,7 +7,7 @@
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Debug executable 'wssserver'",
+      "name": "Debug executable 'wss11'",
       "cargo": {
         "args": [
           "build",
