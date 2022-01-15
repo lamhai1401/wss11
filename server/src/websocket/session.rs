@@ -8,7 +8,7 @@ use log::{info, warn};
 use std::time::{Duration, Instant};
 use uuid::Uuid;
 
-use super::server::{Disconnect, Message, Server};
+use super::server::{Connect, Disconnect, Message, Server};
 pub struct WebSocketSession {
     id: String,
     hb: Instant,
@@ -26,19 +26,58 @@ impl WebSocketSession {
             server_addr,
         }
     }
+
+    fn send_heartbeat(&self, ctx: &mut <Self as Actor>::Context) {
+        ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
+            if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
+                info!("Websocket Client heartbeat failed, disconnecting!");
+
+                act.server_addr.do_send(Disconnect { id: act.id.clone() });
+                // stop actor
+                ctx.stop();
+
+                // don't try to send a ping
+                return;
+            }
+
+            ctx.ping(b"");
+        });
+    }
 }
 
 impl Actor for WebSocketSession {
     type Context = ws::WebsocketContext<Self>;
+
+    // run when started
+    fn started(&mut self, ctx: &mut Self::Context) {
+        self.send_heartbeat(ctx);
+
+        let session_addr = ctx.address();
+
+        self.server_addr
+            .send(Connect {
+                addr: session_addr.recipient(),
+                id: self.id.clone(),
+            })
+            .into_actor(self)
+            .then(|res, _act, ctx| {
+                match res {
+                    Ok(_res) => {}
+                    _ => ctx.stop(),
+                }
+                fut::ready(())
+            })
+            .wait(ctx);
+    }
 }
 
-// impl Handler<Message> for WebSocketSession {
-//     type Result = ();
+impl Handler<Message> for WebSocketSession {
+    type Result = ();
 
-//     fn handle(&mut self, msg: Message, ctx: &mut Self::Context) {
-//         ctx.text(msg.0);
-//     }
-// }
+    fn handle(&mut self, msg: Message, ctx: &mut Self::Context) {
+        ctx.text(msg.0);
+    }
+}
 
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession {
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {

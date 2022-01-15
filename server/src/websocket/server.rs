@@ -21,21 +21,21 @@ pub struct Connect {
     pub id: String,
 }
 
-// #[derive(ActixMessage, Deserialize, Serialize)]
-// #[rtype(result = "()")]
-// pub struct MessageToClient {
-//     pub msg_type: String,
-//     pub data: Value,
-// }
+#[derive(ActixMessage, Deserialize, Serialize)]
+#[rtype(result = "()")]
+pub struct MessageToClient {
+    pub msg_type: String,
+    pub data: Value,
+}
 
-// impl MessageToClient {
-//     pub fn new(msg_type: &str, data: Value) -> Self {
-//         Self {
-//             msg_type: msg_type.to_string(),
-//             data,
-//         }
-//     }
-// }
+impl MessageToClient {
+    pub fn new(msg_type: &str, data: Value) -> Self {
+        Self {
+            msg_type: msg_type.to_string(),
+            data,
+        }
+    }
+}
 
 pub struct Server {
     sessions: HashMap<String, Recipient<Message>>,
@@ -43,7 +43,7 @@ pub struct Server {
 
 impl Server {
     pub fn new() -> Self {
-        Server {
+        Self {
             sessions: HashMap::new(),
         }
     }
@@ -76,5 +76,13 @@ impl Handler<Connect> for Server {
     type Result = ();
     fn handle(&mut self, msg: Connect, _: &mut Context<Self>) {
         self.sessions.insert(msg.id.clone(), msg.addr);
+    }
+}
+
+impl Handler<MessageToClient> for Server {
+    type Result = ();
+
+    fn handle(&mut self, msg: MessageToClient, _: &mut Context<Self>) -> Self::Result {
+        self.send_message(to_string(&msg));
     }
 }

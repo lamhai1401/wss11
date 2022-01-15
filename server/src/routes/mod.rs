@@ -5,7 +5,7 @@ use actix_web::{
     HttpResponse, Responder, Result,
 };
 
-use server::websocket::ws_index;
+use super::websocket::ws_index;
 
 pub fn routes(cfg: &mut ServiceConfig) {
     cfg.service(web::resource("/ws/").route(web::get().to(ws_index)))
