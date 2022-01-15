@@ -50,8 +50,19 @@ impl Server {
 
     fn send_message(&self, data: SerdeResult<String>) {
         match data {
+            // Ok(data) => {
+            //     info!("Wss send msg {:?}", data); // TODO impl this handle forward msg
+            // }
             Ok(data) => {
-                info!("Wss send msg {:?}", data); // TODO impl this handle forward msg
+                info!("Wss send msg to all user {:?}", data); // TODO impl this handle forward msg
+                for recipient in self.sessions.values() {
+                    match recipient.do_send(Message(data.clone())) {
+                        Err(err) => {
+                            error!("Error sending client message: {:?}", err);
+                        }
+                        _ => {}
+                    }
+                }
             }
             Err(err) => {
                 error!("Data did not convert to string {:?}", err);
@@ -75,6 +86,7 @@ impl Handler<Disconnect> for Server {
 impl Handler<Connect> for Server {
     type Result = ();
     fn handle(&mut self, msg: Connect, _: &mut Context<Self>) {
+        info!("{:?} id user resgited", msg.id.clone());
         self.sessions.insert(msg.id.clone(), msg.addr);
     }
 }

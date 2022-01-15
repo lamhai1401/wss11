@@ -20,8 +20,9 @@ pub async fn ws_index(
     stream: web::Payload,
     server_addr: web::Data<Addr<Server>>,
 ) -> Result<HttpResponse, Error> {
+    let id = req.query_string().get(3..).unwrap();
     let res = ws::start(
-        WebSocketSession::new(server_addr.get_ref().clone()),
+        WebSocketSession::new(server_addr.get_ref().clone(), id.to_string()),
         &req,
         stream,
     )?;

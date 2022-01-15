@@ -19,9 +19,9 @@ const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
 
 impl WebSocketSession {
-    pub fn new(server_addr: Addr<Server>) -> Self {
+    pub fn new(server_addr: Addr<Server>, id: String) -> Self {
         Self {
-            id: Uuid::new_v4().to_string(),
+            id,
             hb: Instant::now(),
             server_addr,
         }
@@ -88,6 +88,10 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
             }
             Ok(ws::Message::Pong(_)) => {
                 self.hb = Instant::now();
+            }
+            Ok(ws::Message::Text(msg)) => {
+                warn!("Receive client msg: {:?}", msg);
+                ctx.text(msg);
             }
             Ok(ws::Message::Binary(bin)) => ctx.binary(bin),
             Ok(ws::Message::Close(reason)) => {
