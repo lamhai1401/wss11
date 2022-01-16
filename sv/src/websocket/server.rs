@@ -1,41 +1,9 @@
-use actix::prelude::{Actor, Context, Handler, Message as ActixMessage, Recipient};
+use actix::prelude::{Actor, Context, Handler, Recipient};
 use log::{error, info};
-use serde::{Deserialize, Serialize};
-use serde_json::{error::Result as SerdeResult, to_string, Value};
+use serde_json::{error::Result as SerdeResult, to_string};
 use std::collections::HashMap;
 
-#[derive(ActixMessage)]
-#[rtype(result = "()")]
-pub struct Message(pub String);
-
-#[derive(ActixMessage)]
-#[rtype(result = "()")]
-pub struct Disconnect {
-    pub id: String,
-}
-
-#[derive(ActixMessage)]
-#[rtype(result = "()")]
-pub struct Connect {
-    pub addr: Recipient<Message>,
-    pub id: String,
-}
-
-#[derive(ActixMessage, Deserialize, Serialize)]
-#[rtype(result = "()")]
-pub struct MessageToClient {
-    pub msg_type: String,
-    pub data: Value,
-}
-
-impl MessageToClient {
-    pub fn new(msg_type: &str, data: Value) -> Self {
-        Self {
-            msg_type: msg_type.to_string(),
-            data,
-        }
-    }
-}
+use crate::msg::{Connect, Disconnect, Message, MessageToClient};
 
 pub struct Server {
     sessions: HashMap<String, Recipient<Message>>,

@@ -8,6 +8,8 @@ use dotenv::dotenv;
 use env_logger;
 use std::env;
 // internal pkg
+
+mod msg;
 mod routes;
 mod websocket;
 

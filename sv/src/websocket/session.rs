@@ -6,9 +6,10 @@ use actix::{
 use actix_web_actors::ws;
 use log::{info, warn};
 use std::time::{Duration, Instant};
-use uuid::Uuid;
 
-use super::server::{Connect, Disconnect, Message, Server};
+use super::Server;
+use crate::msg::{Connect, Disconnect, Message};
+
 pub struct WebSocketSession {
     id: String,
     hb: Instant,
