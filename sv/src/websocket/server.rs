@@ -3,7 +3,7 @@ use log::{error, info};
 use serde_json::{error::Result as SerdeResult, to_string};
 use std::collections::HashMap;
 
-use crate::msg::{Connect, Disconnect, Message, MessageToClient};
+use crate::msg::{Connect, Disconnect, Message, MessageToClient, SessionMessage};
 
 pub struct Server {
     sessions: HashMap<String, Recipient<Message>>,
@@ -48,6 +48,13 @@ impl Handler<Disconnect> for Server {
 
     fn handle(&mut self, msg: Disconnect, _: &mut Context<Self>) {
         self.sessions.remove(&msg.id);
+    }
+}
+
+impl Handler<SessionMessage> for Server {
+    type Result = ();
+    fn handle(&mut self, msg: SessionMessage, _: &mut Context<Self>) {
+        info!("Receive SessionMessage: {:?}", msg);
     }
 }
 

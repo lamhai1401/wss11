@@ -1,6 +1,6 @@
 use actix::{
     fut,
-    prelude::{Actor, Addr, Context, Handler, StreamHandler},
+    prelude::{Actor, Addr, Handler, StreamHandler},
     ActorContext, ActorFuture, AsyncContext, ContextFutureSpawner, WrapFuture,
 };
 use actix_web_actors::ws;
@@ -8,8 +8,7 @@ use log::{info, warn};
 use std::time::Instant;
 
 use super::{Server, CLIENT_TIMEOUT, HEARTBEAT_INTERVAL};
-use crate::msg::{Connect, Disconnect, Message};
-
+use crate::msg::{Connect, Disconnect, Message, SessionMessage};
 pub struct WebSocketSession {
     id: String,
     hb: Instant,
@@ -89,7 +88,13 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
             }
             Ok(ws::Message::Text(msg)) => {
                 warn!("Receive client msg: {:?}", msg);
-                ctx.text(msg);
+                let v: SessionMessage =
+                    serde_json::from_str(msg.as_str()).expect("Wrong type of msg client");
+
+                let back = serde_json::to_string(&v).unwrap();
+
+                info!("Send back to client: {:?}", back);
+                ctx.text(back);
             }
             Ok(ws::Message::Binary(bin)) => ctx.binary(bin),
             Ok(ws::Message::Close(reason)) => {

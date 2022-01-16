@@ -3,7 +3,7 @@ extern crate log;
 use actix::Actor;
 use actix_cors::Cors;
 use actix_rt;
-use actix_web::{http, middleware::Logger, web, App, HttpResponse, HttpServer};
+use actix_web::{http, middleware::Logger, App, HttpServer};
 use dotenv::dotenv;
 use env_logger;
 use std::env;
