@@ -5,9 +5,9 @@ use actix::{
 };
 use actix_web_actors::ws;
 use log::{info, warn};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
-use super::Server;
+use super::{Server, CLIENT_TIMEOUT, HEARTBEAT_INTERVAL};
 use crate::msg::{Connect, Disconnect, Message};
 
 pub struct WebSocketSession {
@@ -15,9 +15,6 @@ pub struct WebSocketSession {
     hb: Instant,
     server_addr: Addr<Server>,
 }
-
-const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
-const CLIENT_TIMEOUT: Duration = Duration::from_secs(30);
 
 impl WebSocketSession {
     pub fn new(server_addr: Addr<Server>, id: String) -> Self {

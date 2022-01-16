@@ -8,6 +8,9 @@ use actix::{
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 
+mod cst;
+pub use self::cst::*;
+
 // internal import
 mod server;
 pub use self::server::*;
