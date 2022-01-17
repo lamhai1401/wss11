@@ -7,7 +7,7 @@ use actix_web_actors::ws;
 use log::{info, warn};
 use std::time::Instant;
 
-use super::{Server, CLIENT_TIMEOUT, HEARTBEAT_INTERVAL};
+use super::{Server, CLIENT_TIMEOUT, ERROR_EVT, HEARTBEAT_INTERVAL};
 use crate::msg::{Connect, Disconnect, Message, SessionMessage};
 pub struct WebSocketSession {
     id: String,
@@ -88,13 +88,24 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
             }
             Ok(ws::Message::Text(msg)) => {
                 warn!("Receive client msg: {:?}", msg);
-                let v: SessionMessage =
-                    serde_json::from_str(msg.as_str()).expect("Wrong type of msg client");
+                let value = serde_json::from_str(msg.as_str());
 
-                let back = serde_json::to_string(&v).unwrap();
+                let value = match value {
+                    Ok(value) => value,
+                    Err(_) => SessionMessage::new(
+                        ERROR_EVT,
+                        "server",
+                        &self.id,
+                        format!("wrong type format msg {}", msg.clone()).as_ref(),
+                    ),
+                };
 
-                info!("Send back to client: {:?}", back);
-                ctx.text(back);
+                if value.event == ERROR_EVT.to_string() {
+                    let back = serde_json::to_string::<SessionMessage>(&value).unwrap();
+                    info!("Send back to client: {:?}", back);
+                    ctx.text(back)
+                }
+                // send to server
             }
             Ok(ws::Message::Binary(bin)) => ctx.binary(bin),
             Ok(ws::Message::Close(reason)) => {
