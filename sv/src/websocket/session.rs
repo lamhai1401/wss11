@@ -1,7 +1,7 @@
 use actix::{
     fut,
     prelude::{Actor, Addr, Handler, StreamHandler},
-    ActorContext, ActorFuture, AsyncContext, ContextFutureSpawner, WrapFuture,
+    ActorContext, ActorFuture, AsyncContext, ContextFutureSpawner, Running, WrapFuture,
 };
 use actix_web_actors::ws;
 use log::{info, warn};
@@ -66,6 +66,15 @@ impl Actor for WebSocketSession {
             })
             .wait(ctx);
     }
+
+    fn stopping(&mut self, _: &mut Self::Context) -> Running {
+        info!("{:?} user was stopped", self.id.clone());
+        // notify chat server
+        self.server_addr.do_send(Disconnect {
+            id: self.id.clone(),
+        });
+        Running::Stop
+    }
 }
 
 impl Handler<Message> for WebSocketSession {
@@ -87,24 +96,28 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
                 self.hb = Instant::now();
             }
             Ok(ws::Message::Text(msg)) => {
-                warn!("Receive client msg: {:?}", msg);
-                let value = serde_json::from_str(msg.as_str());
+                // warn!("Receive client msg: {:?}", msg);
 
-                let value = match value {
-                    Ok(value) => value,
-                    Err(_) => SessionMessage::new(
-                        ERROR_EVT,
-                        "server",
-                        &self.id,
-                        format!("wrong type format msg {}", msg.clone()).as_ref(),
-                    ),
-                };
+                let result: Vec<&str> = msg.trim().split_whitespace().collect();
 
-                if value.event == ERROR_EVT.to_string() {
-                    let back = serde_json::to_string::<SessionMessage>(&value).unwrap();
-                    info!("Send back to client: {:?}", back);
-                    ctx.text(back)
-                }
+                println!("{:?}", result);
+                // let value = serde_json::from_str(msg.as_str());
+
+                // let value = match value {
+                //     Ok(value) => value,
+                //     Err(_) => SessionMessage::new(
+                //         ERROR_EVT,
+                //         "server",
+                //         &self.id,
+                //         format!("wrong type format msg {}", msg.clone()).as_ref(),
+                //     ),
+                // };
+
+                // if value.event == ERROR_EVT.to_string() {
+                //     let back = serde_json::to_string::<SessionMessage>(&value).unwrap();
+                //     info!("Send back to client: {:?}", back);
+                //     ctx.text(back)
+                // }
                 // send to server
             }
             Ok(ws::Message::Binary(bin)) => ctx.binary(bin),
