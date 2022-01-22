@@ -5,10 +5,15 @@ use actix::{
 };
 use actix_web_actors::ws;
 use log::{info, warn};
+use serde_json::Value;
 use std::time::Instant;
 
-use super::{Server, CLIENT_TIMEOUT, ERROR_EVT, HEARTBEAT_INTERVAL};
-use crate::msg::{Connect, Disconnect, Message, SessionMessage};
+use crate::msg::{
+    Connect, Disconnect, Message, MessageToClient, MessageType, CLIENT_TIMEOUT, HEARTBEAT_INTERVAL,
+};
+
+use super::Server;
+
 pub struct WebSocketSession {
     id: String,
     hb: Instant,
@@ -85,6 +90,7 @@ impl Handler<Message> for WebSocketSession {
     }
 }
 
+// handle basic msg
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession {
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         match msg {
@@ -96,29 +102,21 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebSocketSession 
                 self.hb = Instant::now();
             }
             Ok(ws::Message::Text(msg)) => {
-                // warn!("Receive client msg: {:?}", msg);
-
-                let result: Vec<&str> = msg.trim().split_whitespace().collect();
-
-                println!("{:?}", result);
-                // let value = serde_json::from_str(msg.as_str());
-
-                // let value = match value {
-                //     Ok(value) => value,
-                //     Err(_) => SessionMessage::new(
-                //         ERROR_EVT,
-                //         "server",
-                //         &self.id,
-                //         format!("wrong type format msg {}", msg.clone()).as_ref(),
-                //     ),
-                // };
-
-                // if value.event == ERROR_EVT.to_string() {
-                //     let back = serde_json::to_string::<SessionMessage>(&value).unwrap();
-                //     info!("Send back to client: {:?}", back);
-                //     ctx.text(back)
-                // }
-                // send to server
+                // Parse the string of data into serde_json::Value.
+                let v = serde_json::from_str::<Value>(msg.as_str());
+                match v {
+                    Ok(Value::Array(v)) => self.server_addr.do_send(MessageToClient::new(
+                        Value::Array(v),
+                        &self.id,
+                        MessageType::Private,
+                    )),
+                    Ok(Value::String(v)) => ctx.text(v),
+                    Err(err) => {
+                        let result = format!("{:?} body msg {:?} err: {:?}", self.id, msg, err);
+                        ctx.text(result);
+                    }
+                    _ => {}
+                }
             }
             Ok(ws::Message::Binary(bin)) => ctx.binary(bin),
             Ok(ws::Message::Close(reason)) => {

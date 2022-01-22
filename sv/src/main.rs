@@ -1,4 +1,3 @@
-#[macro_use]
 extern crate log;
 use actix::Actor;
 use actix_cors::Cors;

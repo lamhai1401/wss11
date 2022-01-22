@@ -1,9 +1,10 @@
 use actix::prelude::{Actor, Context, Handler, Recipient};
 use log::{error, info};
-use serde_json::{error::Result as SerdeResult, to_string};
+use serde_json::{error::Result as SerdeResult, to_string, Value};
+
 use std::collections::HashMap;
 
-use crate::msg::{Connect, Disconnect, Message, MessageToClient, SessionMessage};
+use crate::msg::{Connect, Disconnect, Message, MessageToClient, MessageType, SessionMessage};
 
 pub struct Server {
     sessions: HashMap<String, Recipient<Message>>,
@@ -16,7 +17,7 @@ impl Server {
         }
     }
 
-    fn send_message(&self, data: SerdeResult<String>) {
+    fn dispatch(&self, data: SerdeResult<String>) {
         match data {
             // Ok(data) => {
             //     info!("Wss send msg {:?}", data); // TODO impl this handle forward msg
@@ -70,6 +71,43 @@ impl Handler<MessageToClient> for Server {
     type Result = ();
 
     fn handle(&mut self, msg: MessageToClient, _: &mut Context<Self>) -> Self::Result {
-        self.send_message(to_string(&msg));
+        match msg.msg_type {
+            MessageType::Private => {
+                // get data
+                let mut resp = match msg.data {
+                    Value::Array(data) => data,
+                    _ => vec![Value::String(msg.from.clone())],
+                };
+
+                // set sender
+                let receiver_id =
+                    match std::mem::replace(&mut resp[0], Value::String(msg.from.to_string())) {
+                        Value::String(v) => v,
+                        _ => "".to_string(),
+                    };
+
+                match serde_json::to_string(&resp) {
+                    Ok(v) => {
+                        // get session
+                        let receiver = self.sessions.get(&receiver_id);
+                        if let Some(r) = receiver {
+                            match r.do_send(Message::new(v)) {
+                                Err(err) => println!(
+                                    "Sending msg to {:?} err: {:?}",
+                                    receiver_id.to_string(),
+                                    err
+                                ),
+                                _ => {}
+                            }
+                        };
+                    }
+                    Err(err) => {
+                        error!("serde_json {:?} err: {:?}", resp, err);
+                    }
+                };
+            }
+            MessageType::Public => self.dispatch(to_string(&msg.data)),
+            _ => {}
+        }
     }
 }
