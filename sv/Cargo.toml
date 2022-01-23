@@ -3,6 +3,7 @@ name = "wss11"
 path = "src/main.rs"
 
 [dependencies]
+errors = { path = "../errors" }
 actix = "0.10.0"
 actix-cors = "0.5"
 actix-http = "2.1"
