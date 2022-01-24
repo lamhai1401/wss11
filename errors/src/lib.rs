@@ -10,8 +10,22 @@ use diesel::result::{DatabaseErrorKind, Error as DBError};
 use r2d2::Error as PoolError;
 use serde::{Deserialize, Serialize};
 
+/// Another snippet, the same code, but written differently:
+///
+/// ```
+/// assert_eq!(true, true)
+/// ```
+#[doc(alias = "route")] // for doc search engine
 #[derive(Debug, Display, PartialEq)]
 pub enum Error {
+    /// Return true if two ranges overlap.
+    ///
+    // /     assert_eq!(true, true);
+    ///     assert_eq!(true, true);
+    ///
+    /// If either range is empty, they don't count as overlapping.
+    ///
+    /// assert_eq!(false, false); ///
     BadRequest(String),
     InternalServerError(String),
     Unauthorized,
@@ -20,7 +34,6 @@ pub enum Error {
     PoolError(String),
     BlockingError(String),
 }
-
 impl ResponseError for Error {
     fn error_response(&self) -> HttpResponse {
         match self {

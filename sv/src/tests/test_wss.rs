@@ -29,8 +29,10 @@ async fn test_body() {
     use futures::Stream;
 
     let mut srv = get_test_server().await;
-    let client = Client::default();
-    let ws_conn = client.ws(srv.url("/ws/")).connect().await.unwrap();
+    // let client = Client::default();
+    // let ws_conn = client.ws(srv.url("/ws/")).connect().await.unwrap();
 
     srv.stop().await;
 }
+
+// https://cloudmaker.dev/actix-integration-tests/
